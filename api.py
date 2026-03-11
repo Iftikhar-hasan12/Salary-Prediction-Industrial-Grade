@@ -37,15 +37,27 @@ app.add_middleware(
 # ============================================================
 #  MYSQL CONFIGURATION  ← Change these to match your XAMPP setup
 # ============================================================
+# DB_CONFIG = {
+#     "host":     "localhost",
+#     "port":     3306,
+#     "user":     "root",       # XAMPP default user
+#     "password": "",           # XAMPP default = empty password
+#     "database": "salaryai",
+#     "charset":  "utf8mb4",
+#     "cursorclass": pymysql.cursors.DictCursor,
+# }
+
+
+
+
 DB_CONFIG = {
-    "host":     "localhost",
-    "port":     3306,
-    "user":     "root",       # XAMPP default user
-    "password": "",           # XAMPP default = empty password
-    "database": "salaryai",
-    "charset":  "utf8mb4",
-    "cursorclass": pymysql.cursors.DictCursor,
+    'host': 'sql12.freesqldatabase.com',
+    'user': 'sql12819577',
+    'password': 'UbURfNNaiy',
+    'database': 'sql12819577',
+    'port': 3306
 }
+
 
 def get_db():
     """Open and return a fresh PyMySQL connection."""
@@ -169,7 +181,7 @@ async def predict(request: SalaryRequest):
             conn = get_db()
             with conn.cursor() as cursor:
                 sql = """
-                    INSERT INTO predictions
+                    INSERT INTO mytable
                         (predicted_salary, years_experience, age,
                          education_level, job_role, location)
                     VALUES (%s, %s, %s, %s, %s, %s)
@@ -204,7 +216,7 @@ async def history(limit: int = 50, offset: int = 0):
         conn = get_db()
         with conn.cursor() as cursor:
             # Total count
-            cursor.execute("SELECT COUNT(*) AS cnt FROM predictions")
+            cursor.execute("SELECT COUNT(*) AS cnt FROM mytable")
             total = cursor.fetchone()["cnt"]
 
             # Records newest-first
@@ -212,7 +224,7 @@ async def history(limit: int = 50, offset: int = 0):
                 """SELECT id, predicted_salary, years_experience, age,
                           education_level, job_role, location,
                           DATE_FORMAT(created_at, '%%Y-%%m-%%dT%%H:%%i:%%s') AS created_at
-                   FROM predictions
+                   FROM mytable
                    ORDER BY created_at DESC
                    LIMIT %s OFFSET %s""",
                 (limit, offset)
@@ -241,7 +253,7 @@ async def stats():
                     AVG(predicted_salary) AS avg_salary,
                     MAX(predicted_salary) AS max_salary,
                     MIN(predicted_salary) AS min_salary
-                FROM predictions
+                FROM mytable
             """)
             row = cursor.fetchone()
         conn.close()
@@ -264,7 +276,7 @@ async def delete_record(record_id: int):
     try:
         conn = get_db()
         with conn.cursor() as cursor:
-            cursor.execute("DELETE FROM predictions WHERE id = %s", (record_id,))
+            cursor.execute("DELETE FROM mytable WHERE id = %s", (record_id,))
             affected = cursor.rowcount
         conn.commit()
         conn.close()
