@@ -3,5 +3,5 @@ numpy==2.4.3
 pandas==3.0.1
 pydantic==2.12.5
 PyMySQL==1.1.1
-scikit_learn==1.8.0
+scikit-learn==1.6.1
 uvicorn==0.41.0
