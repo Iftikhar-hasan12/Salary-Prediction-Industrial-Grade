@@ -36,10 +36,10 @@ app.add_middleware(
 # ============================================================
 DB_CONFIG = {
     'host':        'sql12.freesqldatabase.com',
-    'user':        'sql12819577',
-    'password':    'UbURfNNaiy',
-    'database':    'sql12819577',
-    'port':        3306,
+    'user':        '00',
+    'password':    '00',
+    'database':    '00',
+    'port':        00,
     'cursorclass': pymysql.cursors.DictCursor,
 }
 
