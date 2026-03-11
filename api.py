@@ -1,15 +1,12 @@
 """
 SalaryAI — api.py
 FastAPI backend with MySQL prediction logging via PyMySQL
-Run: python api.py
-Requires: pip install fastapi uvicorn pandas scikit-learn pymysql
 """
 
 import pickle
 import os
 import pymysql
 import pymysql.cursors
-from datetime import datetime
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
@@ -35,53 +32,41 @@ app.add_middleware(
 )
 
 # ============================================================
-#  MYSQL CONFIGURATION  ← Change these to match your XAMPP setup
+#  MYSQL CONFIGURATION
 # ============================================================
-# DB_CONFIG = {
-#     "host":     "localhost",
-#     "port":     3306,
-#     "user":     "root",       # XAMPP default user
-#     "password": "",           # XAMPP default = empty password
-#     "database": "salaryai",
-#     "charset":  "utf8mb4",
-#     "cursorclass": pymysql.cursors.DictCursor,
-# }
-
-
-
-
 DB_CONFIG = {
-    'host': 'sql12.freesqldatabase.com',
-    'user': 'sql12819577',
-    'password': 'UbURfNNaiy',
-    'database': 'sql12819577',
-    'port': 3306
+    'host':        'sql12.freesqldatabase.com',
+    'user':        'sql12819577',
+    'password':    'UbURfNNaiy',
+    'database':    'sql12819577',
+    'port':        3306,
+    'cursorclass': pymysql.cursors.DictCursor,
 }
 
 
 def get_db():
-    """Open and return a fresh PyMySQL connection."""
     try:
         conn = pymysql.connect(**DB_CONFIG)
         return conn
     except pymysql.MySQLError as e:
-        print(f"❌ DB connection failed: {e}")
+        print(f"DB connection failed: {e}")
         raise HTTPException(status_code=503, detail=f"Database unavailable: {str(e)}")
+
 
 # ============================================================
 #  LOAD ML MODEL
 # ============================================================
 MODEL_PATH = "salary_model.pkl"
 if not os.path.exists(MODEL_PATH):
-    print("❌ Model not found! Run: python train_model.py")
+    print("Model not found! Run: python train_model.py")
     exit(1)
 
 with open(MODEL_PATH, "rb") as f:
     model = pickle.load(f)
-print("✅ Model loaded!")
+print("Model loaded!")
 
 # ============================================================
-#  VALUE MAPS  (frontend label → model training label)
+#  VALUE MAPS
 # ============================================================
 education_map = {
     "High School": "HighSchool",
@@ -117,7 +102,7 @@ class SalaryRequest(BaseModel):
 class SalaryResponse(BaseModel):
     predicted_salary: int
     currency:         str = "USD"
-    saved:            bool = True   # whether DB save succeeded
+    saved:            bool = True
 
 class PredictionRecord(BaseModel):
     id:               int
@@ -127,7 +112,7 @@ class PredictionRecord(BaseModel):
     education_level:  str
     job_role:         str
     location:         str
-    created_at:       str           # ISO string
+    created_at:       str
 
 class HistoryResponse(BaseModel):
     total:   int
@@ -139,17 +124,18 @@ class StatsResponse(BaseModel):
     max_salary:        Optional[float]
     min_salary:        Optional[float]
 
+
 # ============================================================
 #  ROUTES
 # ============================================================
 
 @app.get("/")
 async def root():
-    return {"message": "SalaryAI API v2 is running 🚀", "status": "ok"}
+    return {"message": "SalaryAI API v2 is running", "status": "ok"}
+
 
 @app.get("/health")
 async def health():
-    # Quick DB ping
     try:
         conn = get_db()
         conn.close()
@@ -161,9 +147,7 @@ async def health():
 
 @app.post("/predict", response_model=SalaryResponse)
 async def predict(request: SalaryRequest):
-    """Run salary prediction and log result to MySQL."""
     try:
-        # 1. Build input DataFrame
         input_df = pd.DataFrame([{
             "experience": request.years_experience,
             "age":        request.age,
@@ -172,10 +156,8 @@ async def predict(request: SalaryRequest):
             "job_role":   role_map.get(request.job_role, "Software"),
         }])
 
-        # 2. Predict
         salary = int(round(model.predict(input_df)[0]))
 
-        # 3. Save to MySQL
         saved = False
         try:
             conn = get_db()
@@ -197,9 +179,8 @@ async def predict(request: SalaryRequest):
             conn.commit()
             conn.close()
             saved = True
-            print(f"💾 Saved prediction: ${salary:,}  [{request.job_role} · {request.location}]")
         except Exception as db_err:
-            print(f"⚠️  DB save failed (prediction still returned): {db_err}")
+            print(f"DB save failed: {db_err}")
 
         return SalaryResponse(predicted_salary=salary, saved=saved)
 
@@ -211,19 +192,16 @@ async def predict(request: SalaryRequest):
 
 @app.get("/history", response_model=HistoryResponse)
 async def history(limit: int = 50, offset: int = 0):
-    """Return paginated prediction history from MySQL."""
     try:
         conn = get_db()
         with conn.cursor() as cursor:
-            # Total count
             cursor.execute("SELECT COUNT(*) AS cnt FROM mytable")
             total = cursor.fetchone()["cnt"]
 
-            # Records newest-first
             cursor.execute(
                 """SELECT id, predicted_salary, years_experience, age,
                           education_level, job_role, location,
-                          DATE_FORMAT(created_at, '%%Y-%%m-%%dT%%H:%%i:%%s') AS created_at
+                          CAST(created_at AS CHAR) AS created_at
                    FROM mytable
                    ORDER BY created_at DESC
                    LIMIT %s OFFSET %s""",
@@ -232,7 +210,11 @@ async def history(limit: int = 50, offset: int = 0):
             rows = cursor.fetchall()
         conn.close()
 
-        records = [PredictionRecord(**row) for row in rows]
+        records = []
+        for row in rows:
+            row["created_at"] = str(row["created_at"])
+            records.append(PredictionRecord(**row))
+
         return HistoryResponse(total=total, records=records)
 
     except HTTPException:
@@ -243,13 +225,12 @@ async def history(limit: int = 50, offset: int = 0):
 
 @app.get("/stats", response_model=StatsResponse)
 async def stats():
-    """Aggregate stats for the dashboard counters."""
     try:
         conn = get_db()
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT
-                    COUNT(*)       AS total_predictions,
+                    COUNT(*)              AS total_predictions,
                     AVG(predicted_salary) AS avg_salary,
                     MAX(predicted_salary) AS max_salary,
                     MIN(predicted_salary) AS min_salary
@@ -272,7 +253,6 @@ async def stats():
 
 @app.delete("/history/{record_id}")
 async def delete_record(record_id: int):
-    """Delete a single prediction record."""
     try:
         conn = get_db()
         with conn.cursor() as cursor:
@@ -293,11 +273,4 @@ async def delete_record(record_id: int):
 #  ENTRY POINT
 # ============================================================
 if __name__ == "__main__":
-    print("\n" + "=" * 55)
-    print("🚀  SalaryAI API v2 starting...")
-    print(f"📁  Model : {MODEL_PATH}")
-    print(f"🗄️   DB    : {DB_CONFIG['database']}@{DB_CONFIG['host']}")
-    print("🌐  URL   : http://127.0.0.1:8000")
-    print("📖  Docs  : http://127.0.0.1:8000/docs")
-    print("=" * 55 + "\n")
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
