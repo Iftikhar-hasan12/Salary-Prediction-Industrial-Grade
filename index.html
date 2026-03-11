@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalaryAI · ML Prediction System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar glass-card">
+    <span class="logo">SalaryAI</span>
+    <div class="nav-links">
+      <a href="#home">Home</a>
+      <a href="#history-section">History</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </nav>
+
+  <main class="main-container">
+
+    <!-- Header -->
+    <div class="header-text">
+      <h1>AI Salary Prediction System</h1>
+      <p>Predict salary using Machine Learning</p>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar glass-card" id="statsBar">
+      <div class="stat-pill">
+        <i class="fas fa-database"></i>
+        <span class="stat-pill-label">Total Predictions</span>
+        <strong id="statTotal">—</strong>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-pill">
+        <i class="fas fa-chart-line"></i>
+        <span class="stat-pill-label">Avg Salary</span>
+        <strong id="statAvg">—</strong>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-pill">
+        <i class="fas fa-arrow-up"></i>
+        <span class="stat-pill-label">Highest</span>
+        <strong id="statMax">—</strong>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-pill">
+        <i class="fas fa-arrow-down"></i>
+        <span class="stat-pill-label">Lowest</span>
+        <strong id="statMin">—</strong>
+      </div>
+    </div>
+
+    <!-- Prediction Card -->
+    <div class="prediction-card glass-card">
+      <form id="salaryForm" novalidate>
+        <div class="form-grid">
+
+          <!-- Years of Experience -->
+          <div class="floating-group">
+            <input type="number" id="experience" name="experience"
+                   step="0.5" placeholder=" " value="5" min="0" max="60" required>
+            <label for="experience">Years of Experience *</label>
+          </div>
+
+          <!-- Age -->
+          <div class="floating-group">
+            <input type="number" id="age" name="age"
+                   placeholder=" " value="32" min="18" max="90" required>
+            <label for="age">Age *</label>
+          </div>
+
+          <!-- Education Level -->
+          <div class="floating-group">
+            <select id="education" name="education" required>
+              <option value="High School">High School</option>
+              <option value="Bachelor" selected>Bachelor</option>
+              <option value="Master">Master</option>
+              <option value="PhD">PhD</option>
+            </select>
+            <label for="education">Education Level</label>
+          </div>
+
+          <!-- Job Role -->
+          <div class="floating-group">
+            <select id="role" name="role" required>
+              <option value="Software Engineer" selected>Software Engineer</option>
+              <option value="Data Scientist">Data Scientist</option>
+              <option value="Manager">Manager</option>
+              <option value="Analyst">Analyst</option>
+            </select>
+            <label for="role">Job Role</label>
+          </div>
+
+          <!-- Location -->
+          <div class="floating-group">
+            <select id="location" name="location" required>
+              <option value="USA" selected>USA</option>
+              <option value="Canada">Canada</option>
+              <option value="UK">UK</option>
+              <option value="Remote">Remote</option>
+            </select>
+            <label for="location">Location</label>
+          </div>
+
+        </div><!-- /.form-grid -->
+
+        <button type="submit" class="btn-predict" id="predictBtn">
+          <span>Predict Salary</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <!-- Result Section -->
+      <div class="result-box" id="resultBox">
+        <div class="result-label">estimated annual salary</div>
+        <div class="result-value" id="salaryOutput">$124,500</div>
+        <div class="result-meta" id="resultMeta"></div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         PREDICTION HISTORY
+         ====================================================== -->
+    <section class="history-section glass-card" id="history-section">
+
+      <div class="history-header">
+        <div class="history-title-group">
+          <h2><i class="fas fa-history"></i> Prediction History</h2>
+          <span class="history-badge" id="historyCount">0 records</span>
+        </div>
+        <div class="history-actions">
+          <input type="text" id="historySearch" class="history-search"
+                 placeholder="🔍  Search role, location…" autocomplete="off">
+          <button class="btn-refresh" id="btnRefresh" title="Refresh history">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table class="history-table" id="historyTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Salary</th>
+              <th>Experience</th>
+              <th>Age</th>
+              <th>Education</th>
+              <th>Role</th>
+              <th>Location</th>
+              <th>Date &amp; Time</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody">
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+
+        <!-- Empty state -->
+        <div class="history-empty" id="historyEmpty" hidden>
+          <i class="fas fa-inbox"></i>
+          <p>No predictions yet. Run your first prediction above!</p>
+        </div>
+
+        <!-- Loading skeleton -->
+        <div class="history-loading" id="historyLoading">
+          <i class="fas fa-circle-notch fa-spin"></i>
+          <span>Loading history…</span>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination" hidden>
+        <button class="page-btn" id="btnPrev" disabled>
+          <i class="fas fa-chevron-left"></i> Prev
+        </button>
+        <span class="page-info" id="pageInfo">Page 1</span>
+        <button class="page-btn" id="btnNext">
+          Next <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer" id="contact">
+      <div class="copy">© 2026 SalaryAI</div>
+      <div class="ml-badge">
+        <i class="fas fa-brain"></i>
+        Built with Machine Learning
+      </div>
+    </footer>
+
+  </main><!-- /.main-container -->
+
+  <!-- Toast -->
+  <div id="toast" class="toast">
+    <i class="fas fa-info-circle"></i>
+    <span id="toastMessage">message</span>
+  </div>
+
+  <!-- Delete confirm modal -->
+  <div class="modal-overlay" id="deleteModal" hidden>
+    <div class="modal glass-card">
+      <div class="modal-icon"><i class="fas fa-trash-alt"></i></div>
+      <h3>Delete Record?</h3>
+      <p>This prediction will be permanently removed from the database.</p>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn--cancel" id="modalCancel">Cancel</button>
+        <button class="modal-btn modal-btn--confirm" id="modalConfirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
